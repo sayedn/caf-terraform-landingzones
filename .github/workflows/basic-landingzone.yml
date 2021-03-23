@@ -1,0 +1,123 @@
+
+#
+# Copyright (c) Microsoft Corporation
+# Licensed under the MIT License.
+#
+
+name: landingzones
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'documentation/**'
+      - '_pictures/**'
+      - 'README.md'
+      - 'CHANGELOG.md'
+  push:
+    paths-ignore:
+      - 'documentation/**'
+      - '_pictures/**'
+      - 'README.md'
+      - 'CHANGELOG.md'
+  schedule:
+    - cron:  '0 4 * * *'
+
+env:
+  TF_CLI_ARGS: '-no-color'
+  TF_CLI_ARGS_destroy: '-auto-approve -refresh=false'
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ROVER_RUNNER: true
+
+jobs:
+  salz-foundations:
+    name: foundations
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+          random_length: ['5']
+
+    container:
+      image: aztfmod/rover:0.13.6-2103.0304
+      options: --user 0
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login azure
+        run: |
+          az login --service-principal -u '${{ env.ARM_CLIENT_ID }}' -p '${{ env.ARM_CLIENT_SECRET }}' --tenant '${{ env.ARM_TENANT_ID }}'
+          az account set -s  ${{ env.ARM_SUBSCRIPTION_ID }}
+
+          echo "local user: $(whoami)"
+
+      - name: launchpad
+        run: |
+          /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_launchpad -a apply \
+            -var-folder ${GITHUB_WORKSPACE}/configs/basic/launchpad \
+            -level level0 \
+            -launchpad \
+            -parallelism=30 \
+            --environment ${{ github.run_id }} \
+            '-var random_length=${{ matrix.random_length }}' \
+            '-var prefix=g${{ github.run_id }}' \
+            '-var tags={testing_job_id="${{ github.run_id }}"}'
+
+      - name: foundations
+        run: |
+          /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_foundations -a apply \
+            -level level1 \
+            -parallelism=30 \
+            --environment ${{ github.run_id }}
+
+  salz:
+    name: networking
+    runs-on: ubuntu-latest
+
+    needs: foundations
+
+    strategy:
+      fail-fast: false
+      matrix:
+          config_files: [
+            "configs/basic/networking/single-region-hub",
+            "configs/basic/networking/multi-region-hub",
+            "configs/basic/networking/hub-and-spoke"
+          ]
+
+    container:
+      image: aztfmod/rover:0.13.6-2103.0304
+      options: --user 0
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login azure
+        run: |
+          az login --service-principal -u '${{ env.ARM_CLIENT_ID }}' -p '${{ env.ARM_CLIENT_SECRET }}' --tenant '${{ env.ARM_TENANT_ID }}'
+          az account set -s  ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: deploy example
+        run: |
+          /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_networking/ -a apply \
+            -tfstate $(basename ${{ matrix.config_files }}).tfstate \
+            -level level2 \
+            -parallelism=30 \
+            -var-folder ${GITHUB_WORKSPACE}/${{ matrix.config_files }} \
+            --environment ${{ github.run_id }}
+
+      - name: destroy example
+        run: |
+          /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_networking/ -a destroy \
+            -tfstate $(basename ${{ matrix.config_files }}).tfstate \
+            -level level2 \
+            -parallelism=30 \
+            -var-folder ${GITHUB_WORKSPACE}/${{ matrix.config_files }} \
+            --environment ${{ github.run_id }} \
+            -refresh=false \
+            -auto-approve
