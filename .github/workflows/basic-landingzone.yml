@@ -158,7 +158,7 @@ jobs:
             '-var prefix=g${{ github.run_id }}' \
             '-var tags = {testing_job_id="${{ github.run_id }}"}'
       - name: upgrade-foundations
-        urn: |
+        run: |
           /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_launchpad -a apply \
           -lvel level1 \
           --environment ${{ github.run_id  }}
