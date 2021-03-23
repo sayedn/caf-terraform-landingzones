@@ -78,7 +78,7 @@ jobs:
     name: networking
     runs-on: ubuntu-latest
 
-    needs: foundations
+    needs: salz-foundations
 
     strategy:
       fail-fast: false
