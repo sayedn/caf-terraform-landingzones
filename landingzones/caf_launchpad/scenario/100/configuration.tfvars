@@ -22,7 +22,8 @@ inherit_tags = true
 
 regions = {
   region1 = "southeastasia"
-  region2 = "eastasia"
+  region2 = "eastasia",
+  region3 = "eastus"
 }
 
 launchpad_key_names = {
