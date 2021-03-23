@@ -7,19 +7,22 @@ name: landingzones
 
 on:
   pull_request:
+    branches:
+      - main
     paths-ignore:
       - 'documentation/**'
       - '_pictures/**'
       - 'README.md'
       - 'CHANGELOG.md'
   push:
+    branches:
+      - main
     paths-ignore:
       - 'documentation/**'
       - '_pictures/**'
       - 'README.md'
       - 'CHANGELOG.md'
-  schedule:
-    - cron:  '0 4 * * *'
+
 
 env:
   TF_CLI_ARGS: '-no-color'
