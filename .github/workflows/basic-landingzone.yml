@@ -63,8 +63,8 @@ jobs:
             -launchpad \
             -parallelism=30 \
             --environment DEV \
-            '-var prefix=SNFI1 \
-            '-var tags={testing_job_id="${{ github.run_id }}"}'
+            -var prefix=SNFI1 \
+            -var tags={testing_job_id="${{ github.run_id }}"}
 
       - name: foundations
         run: |
