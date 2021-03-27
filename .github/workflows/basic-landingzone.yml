@@ -62,9 +62,8 @@ jobs:
             -level level0 \
             -launchpad \
             -parallelism=30 \
-            --environment ${{ github.run_id }} \
-            '-var random_length=${{ matrix.random_length }}' \
-            '-var prefix=g${{ github.run_id }}' \
+            --environment DEV \
+            '-var prefix=SNFI1 \
             '-var tags={testing_job_id="${{ github.run_id }}"}'
 
       - name: foundations
@@ -72,7 +71,7 @@ jobs:
           /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_foundations -a apply \
             -level level1 \
             -parallelism=30 \
-            --environment ${{ github.run_id }}
+            --environment DEV 
 
   salz-networking:
     name: networking
@@ -85,9 +84,7 @@ jobs:
       matrix:
         config_files:
           [
-            "configs/basic/networking/single-region-hub",
-            "configs/basic/networking/multi-region-hub",
-            "configs/basic/networking/hub-and-spoke",
+            "configs/basic/networking/hub-and-spoke"
           ]
 
     container:
@@ -109,7 +106,7 @@ jobs:
             -level level2 \
             -parallelism=30 \
             -var-folder ${GITHUB_WORKSPACE}/${{ matrix.config_files }} \
-            --environment ${{ github.run_id }}
+            --environment DEV \
 
       # - name: destroy example
       #   run: |
@@ -121,44 +118,46 @@ jobs:
       #       --environment ${{ github.run_id }} \
       #       -refresh=false \
       #       -auto-approve
-  salz-foundation-advanced:
-    name: foundation-advanced
-    runs-on: ubuntu-latest
-    needs: salz-networking
-    if: always()
+  # salz-foundation-advanced:
+  #   name: foundation-advanced
+  #   runs-on: ubuntu-latest
+  #   needs: salz-networking
+  #   if: always()
 
-    strategy:
-      fail-fast: true
-      max-parallel: 1
-      matrix:
-        random_length: ["5"]
+  #   strategy:
+  #     fail-fast: true
+  #     max-parallel: 1
+  #     matrix:
+  #       random_length: ["5"]
 
-    container:
-      image: aztfmod/rover:0.13.6-2103.0304
-      options: --user 0
+  #   container:
+  #     image: aztfmod/rover:0.13.6-2103.0304
+  #     options: --user 0
 
-    steps:
-      - uses: actions/checkout@v2
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Login Azure
-        run: |
-          az login --service-principal -u '${{ env.ARM_CLIENT_ID }}' -p '${{ env.ARM_CLIENT_SECRET }}' --tenant  '${{ env.ARM_TENANT_ID }}'
-          az account set -s ${{ env.ARM_SUBSCRIPTION_ID }}
+  #     - name: Login Azure
+  #       run: |
+  #         az login --service-principal -u '${{ env.ARM_CLIENT_ID }}' -p '${{ env.ARM_CLIENT_SECRET }}' --tenant  '${{ env.ARM_TENANT_ID }}'
+  #         az account set -s ${{ env.ARM_SUBSCRIPTION_ID }}
 
-          echo "local user: $(whomai)"
-      - name: upgrade-launchpad
-        run: |
-          /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_launchpad -a apply \
-            -var-folder ${GITHUB_WORKSPACE}/configs/advanced/launchpad \
-            -level level0 \
-            -launchpad \
-            -parallelism=30 \
-            --environment ${{ github.run_id }} \
-            '-var random_length=${{ matrix.random_length }}' \
-            '-var prefix=g${{ github.run_id }}' \
-            '-var tags = {testing_job_id="${{ github.run_id }}"}'
-      - name: upgrade-foundations
-        run: |
-          /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_launchpad -a apply \
-          -lvel level1 \
-          --environment ${{ github.run_id  }}
+  #         echo "local user: $(whomai)"
+
+  #     - name: upgrade-launchpad
+  #       run: |
+  #         /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_launchpad -a apply \
+  #           -var-folder ${GITHUB_WORKSPACE}/configs/advanced/launchpad \
+  #           -level level0 \
+  #           -launchpad \
+  #           -parallelism=30 \
+  #           --environment ${{ github.run_id }} \
+  #           '-var random_length=${{ matrix.random_length }}' \
+  #           '-var prefix=g${{ github.run_id }}' \
+  #           '-var tags={testing_job_id="${{ github.run_id }}"}'
+            
+  #     - name: upgrade-foundations
+  #       run: |
+  #         /tf/rover/rover.sh -lz ${GITHUB_WORKSPACE}/landingzones/caf_launchpad -a apply \
+  #         -lvel level1 \
+  #         --environment ${{ github.run_id  }}
